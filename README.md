@@ -81,4 +81,4 @@ A command line utility program for demonstrating various system calls for files 
 
 ## References 
 
-- [GitHub](https://github.com/jatinsehrwt/a22-mcsc202-assign-1-j29)
+- [GitHub](https://github.com/jatinsehrwt/22mcsc202-jatin-assign-1)
