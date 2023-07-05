@@ -49,8 +49,8 @@ A command line utility program for demonstrating various system calls for files 
   - There will be exact matching of case and dashes
   - Dashed: Required Commands
   - Non-dashed: Required Parameters
-  - {}: Required Choice Parameters
-  - []: Optional Parameters
+  - { }: Required Choice Parameters
+  - [ ]: Optional Parameters
 
 - Information about usage is printed for any other wrong command executed.
 
