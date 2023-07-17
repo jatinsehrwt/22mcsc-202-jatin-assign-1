@@ -7,227 +7,35 @@
 #include <string.h>
 #include <time.h>
 
-void createFile(const char *fileName, mode_t mode)
-{
-    int fd = open(fileName, O_WRONLY | O_CREAT | O_EXCL, mode);
-    if (fd == -1)
-    {
-        perror("Error creating file");
-        exit(1);
-    }
-    else
-    {
-        printf("File Created Successfully !\n");
-    }
-    close(fd);
-}
+#include "./include/create.h"
+#include "./include/finfo.h"
+#include "./include/pipecp.h"
+#include "./include/read.h"
+#include "./include/write.h"
 
-void createNamedPipe(const char *pipeName, mode_t mode)
-{
-    if (mkfifo(pipeName, mode) == -1)
-    {
-        perror("Error creating named pipe");
-        exit(1);
-    }
-    else
-    {
-        printf("Pipe Created Successfully !");
-    }
-}
 
-void createNamedPipePurpose(const char *pipeName, mode_t mode, int purpose)
-{
-    int pipeFd = mkfifo(pipeName, 0666);
-    if (pipeFd == -1)
-    {
-        perror("Error creating named pipe");
-        exit(1);
-    }
-    else
-    {
-        if (purpose == 0) // Read Case
-        {
-            int fd = open(pipeName, O_RDONLY);
-            if (fd == -1)
-            {
-                perror("Error creating named pipe");
-                exit(1);
-            }
 
-            char buff[4096];
-            ssize_t bytesRead = read(fd, buff, sizeof(buff));
-            if (bytesRead == -1)
-            {
-                perror("Error reading from named pipe");
-                exit(1);
-            }
 
-            printf("Data read from named pipe: %.*s\n", (int)bytesRead, buff);
-            close(fd);
-        }
 
-        else if (purpose == 1) // Write Case
-        {
-            int fd = open(pipeName, O_WRONLY);
-            if (fd == -1)
-            {
-                perror("Error creating named pipe");
-                exit(1);
-            }
 
-            char buff[4096];
-            printf("Enter the message to write to the named pipe: ");
-            fgets(buff, sizeof(buff), stdin);
 
-            // Write data to the named pipe
-            ssize_t bytesWritten = write(fd, buff, strlen(buff));
-            if (bytesWritten == -1)
-            {
-                perror("Error writing to named pipe");
-                exit(1);
-            }
+// All the argument parsing is done in main(), it finds --operation -suboperation and other parameters.
 
-            printf("Data written to named pipe: %s\n", buff);
-            close(fd);
-        }
-    }
-}
-
-void readFromFile(const char *fileName, size_t bytesToRead, off_t offset)
-{
-    int fd = open(fileName, O_RDONLY);
-    if (fd == -1)
-    {
-        perror("Error opening file for reading");
-        exit(1);
-    }
-
-    if (lseek(fd, offset, SEEK_SET) == -1)
-    {
-        perror("Error seeking file");
-        exit(1);
-    }
-
-    char *buffer = (char *)malloc(bytesToRead);
-    ssize_t bytesRead = read(fd, buffer, bytesToRead);
-    if (bytesRead == -1)
-    {
-        perror("Error reading from file");
-        exit(1);
-    }
-
-    write(STDOUT_FILENO, buffer, bytesRead);
-
-    close(fd);
-    free(buffer);
-}
-
-void writeToFile(const char *fileName, size_t bytesToWrite, off_t offset, int whence)
-{
-    int fd = open(fileName, O_WRONLY), byteWrite = 0;
-    if (fd == -1)
-    {
-        perror("Error opening file for writing");
-        exit(1);
-    }
-
-    if (lseek(fd, offset, whence) == -1)
-    {
-        perror("Error seeking file");
-        exit(1);
-    }
-
-    char buff[4096];
-    printf("Enter data to write to file. Press Ctrl-D to finish Writing.\n");
-
-    while (bytesToWrite > 0 && (fgets(buff, 4096, stdin) != NULL))
-    {
-        int count = strlen(buff);
-        if (bytesToWrite < count)
-            // if bytes left to write are less then bytes written by the user at terminal
-            count = bytesToWrite;
-        if ((write(fd, buff, count)) == -1)
-        {
-            perror("Error while writing");
-            return;
-        }
-        bytesToWrite -= count;
-        byteWrite += count; // maintaing the count of bytes written by the user
-    }
-
-    printf("\nSuccessfully written %d bytes to file.\n", byteWrite);
-
-    close(fd);
-}
-
-void getStats(const char *fileName)
-{
-    struct stat fileStat;
-    if (stat(fileName, &fileStat) == -1)
-    {
-        perror("Error getting file stats");
-        exit(1);
-    }
-
-    printf("File Stats:\n");
-    printf("Size: %lld bytes\n", (long long)fileStat.st_size);
-    printf("Permissions: %o\n", fileStat.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO));
-    printf("Inode: %ld\n", fileStat.st_ino);
-    printf("Owner UID: %u\n", fileStat.st_uid);
-    printf("Group GID: %u\n", fileStat.st_gid);
-    printf("Last Access Time: %s", ctime(&fileStat.st_atime));
-    printf("Last Modification Time: %s", ctime(&fileStat.st_mtime));
-    printf("Last Status Change Time: %s", ctime(&fileStat.st_ctime));
-}
-
-void copyFileUsingPipes(const char *sourceFile, const char *destinationFile)
-{
-    int sourceFd = open(sourceFile, O_RDONLY);
-    if (sourceFd == -1)
-    {
-        perror("Error opening source file");
-        exit(1);
-    }
-
-    int destFd = open(destinationFile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (destFd == -1)
-    {
-        perror("Error opening destination file");
-        exit(1);
-    }
-
-    char buffer[4096];
-    ssize_t bytesRead;
-    while ((bytesRead = read(sourceFd, buffer, sizeof(buffer))) > 0)
-    {
-        ssize_t bytesWritten = write(destFd, buffer, bytesRead);
-        if (bytesWritten == -1)
-        {
-            perror("Error writing to destination file");
-            exit(1);
-        }
-    }
-
-    if (bytesRead == -1)
-    {
-        perror("Error reading from source file");
-        exit(1);
-    }
-
-    printf("Successfully copied contents from '%s' to '%s'.\n", sourceFile, destinationFile);
-
-    close(sourceFd);
-    close(destFd);
-}
+// Test of some success and failure definition are done using /tests folder.
 
 int main(int argc, char *argv[])
 {
     if (argc < 3)
     {
-        printf("Usage: %s --operation ...\n", argv[0]);
-        printf("For File: %s --file {-c -r -w -s} fileName [mode(Octal)]\n", argv[0]);
-        printf("For Pipe: %s --pipe {-c -r -w -s} pipeName [mode(Octal)]\n", argv[0]);
-        printf("For Copy: %s --copy sourceFile DestinationFile\n", argv[0]);
+        printf("Usage: %s --operation -suboperation ...\n", argv[0]);
+        printf("For File: %s --file {-c -r -w -s} fileName\n", argv[0]);
+        printf("  with '-c', Additional Parameters: ... [mode(in Octal)]\n");
+        printf("  with '-r', Additional Parameters: ... BytesToRead [OffSet]\n");
+        printf("  with '-w', Additional Parameters: ... BytesToWrite [OffSet] [Whence(beg/curr/end){0, 1, 2}]\n");
+        printf("For Pipe: %s --pipe {-c -r -w -s} pipeName\n", argv[0]);
+        printf("  with '-c' or '-r' or '-w', Additional Parameters: ... [mode(in Octal)]\n");
+        printf("For Copy: %s --copy sourceFile DestinationFile\n\n", argv[0]);
+        printf("{}: Required Choice, []: Optional \n");
         return 1;
     }
 
@@ -257,7 +65,7 @@ int main(int argc, char *argv[])
         {
             if (argc < 5)
             {
-                printf("Usage: %s --file -r fileName [BytesToRead] [OffSet]\n", argv[0]);
+                printf("Usage: %s --file -r fileName BytesToRead [OffSet]\n", argv[0]);
                 return 1;
             }
             const char *fileName = argv[3];
@@ -273,14 +81,14 @@ int main(int argc, char *argv[])
         {
             if (argc < 5)
             {
-                printf("Usage: %s --file -w fileName [BytesToWrite] [Offset] [Whence(beg/curr/end)]\n", argv[0]);
+                printf("Usage: %s --file -w fileName BytesToWrite [Offset] [Whence(beg/curr/end){0, 1, 2}]\n", argv[0]);
                 return 1;
             }
             const char *fileName = argv[3];
             // const char *content = argv[4];
             size_t bytesToWrite = atoi(argv[4]);
             off_t offset = 0;
-            int whence;
+            int whence = 0;
             if (argc >= 6)
             {
                 offset = atoi(argv[5]);
