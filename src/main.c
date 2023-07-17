@@ -13,12 +13,6 @@
 #include "./include/read.h"
 #include "./include/write.h"
 
-
-
-
-
-
-
 // All the argument parsing is done in main(), it finds --operation -suboperation and other parameters.
 
 // Test of some success and failure definition are done using /tests folder.
